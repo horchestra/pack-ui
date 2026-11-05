@@ -35,6 +35,8 @@ func New(cfg *config.Config, op *operator.Client, repos *edit.Repos) *Server {
 	s.mux.HandleFunc("GET /api/projects", s.projects)
 	s.mux.HandleFunc("GET /api/repo/{id}/file", s.readFile)
 	s.mux.HandleFunc("PUT /api/repo/{id}/file", s.writeFile)
+	s.mux.HandleFunc("GET /api/repo/{id}/log", s.log)
+	s.mux.Handle("/api/op/", s.proxy())
 	s.mux.HandleFunc("/", s.spa)
 	return s
 }
@@ -123,6 +125,37 @@ func (s *Server) readFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	answer(w, map[string]string{"path": path, "ref": branch, "sha": sha, "content": string(content)})
+}
+
+// log answers GET /api/repo/{id}/log?path=&ref=&n= — the commits that touched the path (a release's
+// directory), newest first: the release card's "commits of the directory".
+func (s *Server) log(w http.ResponseWriter, r *http.Request) {
+	p := s.project(w, r)
+	if p == nil {
+		return
+	}
+	repo := s.repo(w, r, p)
+	if repo == nil {
+		return
+	}
+	branch := r.URL.Query().Get("ref")
+	if len(branch) == 0 {
+		branch = p.Branch
+	}
+	commits, err := repo.LogPath(r.Context(), branch, r.URL.Query().Get("path"), 50)
+	if err != nil {
+		fail(w, http.StatusInternalServerError, "error", "%v", err)
+		return
+	}
+	type commit struct {
+		SHA     string `json:"sha"`
+		Subject string `json:"subject"`
+	}
+	out := []commit{}
+	for _, c := range commits {
+		out = append(out, commit{SHA: c[0], Subject: c[1]})
+	}
+	answer(w, out)
 }
 
 // writeFile is the body of PUT /api/repo/{id}/file.

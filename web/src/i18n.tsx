@@ -1,0 +1,162 @@
+import { createContext, useContext, useState, type ReactNode } from 'react'
+
+// en/ru. The language is the user's, kept in localStorage; the pack documentation's language (x-pack-langs)
+// is chosen where a document is asked (schema, explain — ?lang=).
+
+const dict = {
+  en: {
+    projects: 'Projects',
+    releases: 'Releases',
+    jobs: 'Jobs',
+    changes: 'Changes',
+    secrets: 'Secrets',
+    audit: 'Audit',
+    release: 'Release',
+    path: 'Path',
+    state: 'State',
+    health: 'Health',
+    next: 'Next',
+    sha: 'SHA',
+    installed: 'Installed',
+    lastJob: 'Last job',
+    waiting: 'Waiting for approval',
+    plan: 'Plan',
+    approve: 'Approve',
+    approved: 'Approved',
+    cancel: 'Cancel',
+    interrupt: 'Interrupt',
+    refresh: 'Refresh',
+    apply: 'Apply',
+    rollback: 'Rollback',
+    delete: 'Delete',
+    check: 'Check',
+    status: 'Status',
+    history: 'History',
+    sagas: 'Sagas',
+    logs: 'Logs',
+    actions: 'Actions',
+    facts: 'Facts',
+    values: 'Values',
+    template: 'Template',
+    graph: 'Graph',
+    changes2: 'Changes',
+    steps: 'Steps',
+    risks: 'Risks',
+    digest: 'Digest',
+    events: 'Events',
+    result: 'Result',
+    loading: 'Loading…',
+    empty: 'Nothing here yet',
+    language: 'Русский',
+    theme: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    request: 'Request',
+    job: 'Job',
+    commits: 'Commits',
+    run: 'Run',
+    lost: 'Lost',
+    savepoint: 'savepoint',
+    irreversible: 'irreversible',
+    error: 'Error',
+    close: 'Close',
+    merge: 'Merge',
+    openChange: 'Open a change request',
+    title: 'Title',
+    branch: 'Branch',
+    comment: 'Comment',
+    send: 'Send',
+    name: 'Name',
+    create: 'Create',
+    user: 'User',
+  },
+  ru: {
+    projects: 'Проекты',
+    releases: 'Релизы',
+    jobs: 'Задания',
+    changes: 'Запросы изменений',
+    secrets: 'Секреты',
+    audit: 'Аудит',
+    release: 'Релиз',
+    path: 'Путь',
+    state: 'Состояние',
+    health: 'Здоровье',
+    next: 'Дальше',
+    sha: 'SHA',
+    installed: 'Установлен',
+    lastJob: 'Последнее задание',
+    waiting: 'Ждут одобрения',
+    plan: 'План',
+    approve: 'Одобрить',
+    approved: 'Одобрено',
+    cancel: 'Отменить',
+    interrupt: 'Прервать',
+    refresh: 'Обновить',
+    apply: 'Применить',
+    rollback: 'Откатить',
+    delete: 'Удалить',
+    check: 'Проверка',
+    status: 'Состояние',
+    history: 'История',
+    sagas: 'Саги',
+    logs: 'Журнал',
+    actions: 'Действия',
+    facts: 'Площадка',
+    values: 'Значения',
+    template: 'Шаблоны',
+    graph: 'Граф',
+    changes2: 'Изменения',
+    steps: 'Шаги',
+    risks: 'Риски',
+    digest: 'Дайджест',
+    events: 'События',
+    result: 'Итог',
+    loading: 'Загрузка…',
+    empty: 'Пока пусто',
+    language: 'English',
+    theme: 'Тема',
+    light: 'Светлая',
+    dark: 'Тёмная',
+    request: 'Запрос',
+    job: 'Задание',
+    commits: 'Коммиты',
+    run: 'Запустить',
+    lost: 'Потерянные',
+    savepoint: 'точка сохранения',
+    irreversible: 'необратимый',
+    error: 'Ошибка',
+    close: 'Закрыть',
+    merge: 'Слить',
+    openChange: 'Открыть запрос изменений',
+    title: 'Заголовок',
+    branch: 'Ветка',
+    comment: 'Комментарий',
+    send: 'Отправить',
+    name: 'Имя',
+    create: 'Создать',
+    user: 'Пользователь',
+  },
+} as const
+
+export type Lang = keyof typeof dict
+export type Key = keyof (typeof dict)['en']
+
+const LangCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({ lang: 'en', setLang: () => {} })
+
+export function LangProvider({ children }: { children: ReactNode }) {
+  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('pack-ui-lang') as Lang) || 'en')
+  const set = (l: Lang) => {
+    localStorage.setItem('pack-ui-lang', l)
+    setLang(l)
+  }
+  return <LangCtx.Provider value={{ lang, setLang: set }}>{children}</LangCtx.Provider>
+}
+
+export function useLang() {
+  return useContext(LangCtx)
+}
+
+export function useT() {
+  const { lang } = useLang()
+  return (k: Key) => dict[lang][k] ?? k
+}

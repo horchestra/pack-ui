@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -187,6 +188,35 @@ func (r *Repo) ReadFile(ctx context.Context, branch, path string) ([]byte, strin
 		return nil, "", err
 	}
 	return []byte(content), sha, nil
+}
+
+// LogPath is the commits of the remote branch that touched path (a release's directory), newest first,
+// each its sha and subject, at most n.
+func (r *Repo) LogPath(ctx context.Context, branch, path string, n int) ([][2]string, error) {
+	sha, err := r.transport.Resolve(ctx, "refs/remotes/origin/"+branch)
+	if err != nil {
+		return nil, fmt.Errorf("the branch %s: %w", branch, err)
+	}
+	iter, err := r.r.Log(&git.LogOptions{From: plumbing.NewHash(sha), PathFilter: func(p string) bool {
+		return p == path || strings.HasPrefix(p, strings.TrimSuffix(path, "/")+"/")
+	}})
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+	var commits [][2]string
+	err = iter.ForEach(func(c *object.Commit) error {
+		if n > 0 && len(commits) >= n {
+			return io.EOF
+		}
+		subject, _, _ := strings.Cut(c.Message, "\n")
+		commits = append(commits, [2]string{c.Hash.String(), strings.TrimRight(subject, "\r")})
+		return nil
+	})
+	if err == io.EOF {
+		err = nil
+	}
+	return commits, err
 }
 
 // Write commits files (path → content) on branch as author (the user — "Name <address>"), the committer

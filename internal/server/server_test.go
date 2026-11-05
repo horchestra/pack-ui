@@ -70,13 +70,26 @@ func newRig(t *testing.T, flow string) *rig {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	t.Cleanup(op.Close)
-	cfg := &uiconfig.Config{
-		Operator: op.URL, Auth: "none", User: "alice",
+	cfg := testConfig(t, op.URL)
+	cfg.Projects = []uiconfig.Project{{ID: "dev", Repo: remote, Branch: "main", Flow: flow}}
+	return rigWith(t, cfg, rg)
+}
+
+// testConfig is a configuration over a fake operator at opURL.
+func testConfig(t *testing.T, opURL string) *uiconfig.Config {
+	t.Helper()
+	return &uiconfig.Config{
+		Operator: opURL, Auth: "none", User: "alice",
 		Repos: filepath.Join(t.TempDir(), "repos"),
 		Git:   uiconfig.Git{Committer: "pack-ui <pack-ui@localhost>"},
-		Projects: []uiconfig.Project{{
-			ID: "dev", Repo: remote, Branch: "main", Flow: flow,
-		}},
+	}
+}
+
+// rigWith serves the configuration; rg nil — one without a remote (the proxy's tests).
+func rigWith(t *testing.T, cfg *uiconfig.Config, rg *rig) *rig {
+	t.Helper()
+	if rg == nil {
+		rg = &rig{}
 	}
 	repos := edit.New(cfg.Repos, nil, cfg.Git.Committer)
 	t.Cleanup(repos.Close)
