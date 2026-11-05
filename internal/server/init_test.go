@@ -20,8 +20,8 @@ func buildPack(t *testing.T) string {
 	t.Helper()
 	packBinOnce.Do(func() {
 		bin := filepath.Join(os.TempDir(), "pack-ui-test-pack")
-		build := exec.Command("go", "build", "-o", bin, "./cmd/pack")
-		build.Dir = filepath.Join("..", "..", "..")
+		// the pack of the dependency (pack-ui's repository has no cmd/pack of its own)
+		build := exec.Command("go", "build", "-o", bin, "github.com/horchestra/pack/cmd/pack")
 		if out, err := build.CombinedOutput(); err != nil {
 			t.Fatalf("the pack build: %v\n%s", err, out)
 		}

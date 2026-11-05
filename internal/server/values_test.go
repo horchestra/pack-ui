@@ -16,8 +16,9 @@ import (
 	"github.com/horchestra/pack/pkg/valuesfile"
 )
 
-// packFixture is the golden pack the sdk's tests write — a pack directory with a schema.
-const packFixture = "../../../sdk/internal/testdata/golden/openbao"
+// packFixture is the golden pack the sdk's tests write, vendored here — the pack-ui repository stands
+// alone, there is no sdk checkout beside it.
+const packFixture = "testdata/openbao"
 
 // seedPack copies the fixture pack and a release using it into the remote.
 func seedPack(t *testing.T, rg *rig) {
