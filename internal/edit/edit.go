@@ -21,7 +21,7 @@ import (
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
 
-	opgit "github.com/horchestra/pack-operator/git"
+	opgit "github.com/horchestra/pack/operator/git"
 )
 
 // Conflict is a push that met the other side's change of the same files: the rebase pack-ui tried could not

@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/go-git/go-git/v6 v6.0.0-beta.1
 	github.com/horchestra/pack v0.3.0
-	github.com/horchestra/pack-operator v0.1.0
+	github.com/horchestra/pack/operator v0.1.1
 	github.com/horchestra/pack/sdk v1.0.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
@@ -143,5 +143,3 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
-
-replace github.com/horchestra/pack-operator => ../operator

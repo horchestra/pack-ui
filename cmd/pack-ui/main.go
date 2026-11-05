@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	opgit "github.com/horchestra/pack-operator/git"
+	opgit "github.com/horchestra/pack/operator/git"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/horchestra/pack-ui/internal/config"

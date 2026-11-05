@@ -4,9 +4,9 @@ go 1.27.1
 
 require (
 	github.com/go-git/go-git/v6 v6.0.0-beta.1
-	github.com/horchestra/pack-operator v0.0.0
+	github.com/horchestra/pack-operator v0.1.0
 	github.com/horchestra/pack-ui v0.0.0
-	github.com/horchestra/pack/sdk v0.0.0
+	github.com/horchestra/pack/sdk v1.0.0
 )
 
 require (
@@ -19,8 +19,8 @@ require (
 	github.com/Microsoft/go-winio v0.6.3-0.20251027160822-ad3df93bed29 // indirect
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
-	github.com/arenadata/oci-packer v0.0.0 // indirect
-	github.com/arenadata/oci-packer/types v0.0.0 // indirect
+	github.com/arenadata/oci-packer v1.0.0 // indirect
+	github.com/arenadata/oci-packer/types v1.0.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/buger/jsonparser v1.6.1 // indirect
@@ -46,7 +46,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
 	github.com/go-git/gcfg/v2 v2.0.2 // indirect
 	github.com/go-git/go-billy/v6 v6.0.0-beta.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.8 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
-	github.com/horchestra/pack v0.0.0 // indirect
+	github.com/horchestra/pack v0.3.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect

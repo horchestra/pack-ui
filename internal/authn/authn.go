@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	opauthn "github.com/horchestra/pack-operator/authn"
-	opconfig "github.com/horchestra/pack-operator/config"
+	opauthn "github.com/horchestra/pack/operator/authn"
+	opconfig "github.com/horchestra/pack/operator/config"
 
 	"github.com/horchestra/pack-ui/internal/config"
 )

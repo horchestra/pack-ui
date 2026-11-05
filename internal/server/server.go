@@ -18,7 +18,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	opauthn "github.com/horchestra/pack-operator/authn"
+	opauthn "github.com/horchestra/pack/operator/authn"
 
 	"github.com/horchestra/pack-ui/internal/authn"
 	"github.com/horchestra/pack-ui/internal/config"

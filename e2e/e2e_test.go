@@ -4,10 +4,10 @@
 package e2e
 
 import (
-	"io"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -25,11 +25,11 @@ import (
 	"github.com/horchestra/pack/sdk"
 	"github.com/horchestra/pack/sdk/packschema"
 
-	opgit "github.com/horchestra/pack-operator/git"
-	opconfig "github.com/horchestra/pack-operator/config"
-	opdb "github.com/horchestra/pack-operator/db"
-	opserver "github.com/horchestra/pack-operator/server"
-	"github.com/horchestra/pack-operator/worker"
+	opconfig "github.com/horchestra/pack/operator/config"
+	opdb "github.com/horchestra/pack/operator/db"
+	opgit "github.com/horchestra/pack/operator/git"
+	opserver "github.com/horchestra/pack/operator/server"
+	"github.com/horchestra/pack/operator/worker"
 
 	uiconfig "github.com/horchestra/pack-ui/internal/config"
 	"github.com/horchestra/pack-ui/internal/edit"

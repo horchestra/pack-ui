@@ -3,8 +3,8 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
