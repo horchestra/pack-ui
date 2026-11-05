@@ -13,6 +13,7 @@ import { Changes } from './pages/Changes'
 import { ChangePage } from './pages/ChangePage'
 import { NewRelease } from './pages/NewRelease'
 import { Author } from './pages/Author'
+import { Audit, Secrets } from './pages/Secrets'
 
 // The shell: the header with the language and the theme, the routes. HashRouter — the SPA is served from a
 // directory, a hash keeps the backend's fallback to index.html out of the way.
@@ -28,6 +29,8 @@ export function App() {
         <nav aria-label="main">
           <Link to="/">{t('projects')}</Link>
           <Link to="/jobs">{t('jobs')}</Link>
+          <Link to="/secrets">{t('secrets')}</Link>
+          <Link to="/audit">{t('audit')}</Link>
         </nav>
         <button
           aria-label={t('theme')}
@@ -52,6 +55,8 @@ export function App() {
           <Route path="/requests/:id" element={<RequestPage />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobPage />} />
+          <Route path="/secrets" element={<Secrets />} />
+          <Route path="/audit" element={<Audit />} />
         </Routes>
       </main>
     </HashRouter>
