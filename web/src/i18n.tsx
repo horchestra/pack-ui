@@ -94,6 +94,11 @@ const dict = {
     targetSource: 'Target source',
     targetImage: 'Target image',
     runtime: 'Runtime',
+    author: 'Authoring',
+    newPack: 'New pack',
+    authorCheck: 'author check',
+    editor: 'Files',
+    load: 'Load',
   },
   ru: {
     projects: 'Проекты',
@@ -185,6 +190,11 @@ const dict = {
     targetSource: 'Источник площадки',
     targetImage: 'Образ площадки',
     runtime: 'Исполнение',
+    author: 'Авторская работа',
+    newPack: 'Новый пак',
+    authorCheck: 'author check',
+    editor: 'Файлы',
+    load: 'Открыть',
   },
 } as const
 

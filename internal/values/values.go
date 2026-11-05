@@ -89,14 +89,14 @@ func (r *Release) bundle() (*bundle.Bundle, error) {
 	return bundle.Load(pack)
 }
 
-// stubTarget is the render's target where the form is: pack-ui holds no targets (the worker's pack does),
-// so a key resolves to its own name. A suggestion that reads a target's facts offers nothing here — the
-// form's help is the schema's, not the environment's.
-type stubTarget struct{}
+// StubTarget is the render's target where pack-ui works: pack-ui holds no targets (the worker's pack
+// does), so a key resolves to its own name. A suggestion that reads a target's facts offers nothing here —
+// the help is the schema's, not the environment's.
+type StubTarget struct{}
 
-func (stubTarget) Namespace() string { return "" }
+func (StubTarget) Namespace() string { return "" }
 
-func (stubTarget) Resolve(key string, _ render.Placement) (*render.Resolved, error) {
+func (StubTarget) Resolve(key string, _ render.Placement) (*render.Resolved, error) {
 	return &render.Resolved{Service: key, Address: key}, nil
 }
 
@@ -108,7 +108,7 @@ func (r *Release) Ask(values map[string]any) (*render.Questions, error) {
 	if err != nil {
 		return nil, err
 	}
-	return render.Ask(b, render.Values{Values: values}, render.Context{Installation: r.id, Target: stubTarget{}})
+	return render.Ask(b, render.Values{Values: values}, render.Context{Installation: r.id, Target: StubTarget{}})
 }
 
 // Render is the values.yaml of values exactly as pack values write would write it (pkg/valuesfile), and the

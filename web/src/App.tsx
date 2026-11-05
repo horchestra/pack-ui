@@ -12,6 +12,7 @@ import { Env } from './pages/Env'
 import { Changes } from './pages/Changes'
 import { ChangePage } from './pages/ChangePage'
 import { NewRelease } from './pages/NewRelease'
+import { Author } from './pages/Author'
 
 // The shell: the header with the language and the theme, the routes. HashRouter — the SPA is served from a
 // directory, a hash keeps the backend's fallback to index.html out of the way.
@@ -46,6 +47,7 @@ export function App() {
           <Route path="/r/:rel/env" element={<Env />} />
           <Route path="/p/:project/changes" element={<Changes />} />
           <Route path="/p/:project/new-release" element={<NewRelease />} />
+          <Route path="/p/:project/author" element={<Author />} />
           <Route path="/changes/:id" element={<ChangePage />} />
           <Route path="/requests/:id" element={<RequestPage />} />
           <Route path="/jobs" element={<Jobs />} />
