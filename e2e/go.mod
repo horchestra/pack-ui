@@ -4,8 +4,8 @@ go 1.27.1
 
 require (
 	github.com/go-git/go-git/v6 v6.0.0-beta.1
-	github.com/horchestra/pack-operator v0.1.0
 	github.com/horchestra/pack-ui v0.0.0
+	github.com/horchestra/pack/operator v0.1.1
 	github.com/horchestra/pack/sdk v1.0.0
 )
 
@@ -145,14 +145,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/horchestra/pack => ../../
-
-replace github.com/horchestra/pack/sdk => ../../sdk
-
-replace github.com/horchestra/pack-operator => ../../operator
-
 replace github.com/horchestra/pack-ui => ../../ui
-
-replace github.com/arenadata/oci-packer => github.com/arenadata/oci-packer v0.0.0-20261102154302-3f039c44a9be
-
-replace github.com/arenadata/oci-packer/types => github.com/arenadata/oci-packer/types v0.0.0-20261102154302-3f039c44a9be

@@ -12,6 +12,7 @@ import (
 	git "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
 
 	uiconfig "github.com/horchestra/pack-ui/internal/config"
 	"github.com/horchestra/pack-ui/internal/edit"
@@ -126,6 +127,13 @@ func rigWith(t *testing.T, cfg *uiconfig.Config, rg *rig) *rig {
 	return rg
 }
 
+// seedCommit signs the seed's commits itself — a runner without a git config has no user to fall back on.
+func seedCommit(w *git.Worktree, message string) error {
+	who := &object.Signature{Name: "the test", Email: "test@localhost"}
+	_, err := w.Commit(message, &git.CommitOptions{Author: who, Committer: who})
+	return err
+}
+
 // commit commits files on the remote's main branch in the seed clone — someone else's change.
 func (rg *rig) commit(t *testing.T, files map[string]string, message string) {
 	t.Helper()
@@ -140,7 +148,7 @@ func (rg *rig) commit(t *testing.T, files map[string]string, message string) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := rg.seedW.Commit(message, &git.CommitOptions{}); err != nil {
+	if err := seedCommit(rg.seedW, message); err != nil {
 		t.Fatal(err)
 	}
 	if err := rg.seed.Push(&git.PushOptions{RefSpecs: []config.RefSpec{"refs/heads/main:refs/heads/main"}}); err != nil {
@@ -279,7 +287,7 @@ func TestDiff(t *testing.T) {
 	if _, err := w.Remove("gone.txt"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := w.Commit("the change", &git.CommitOptions{}); err != nil {
+	if err := seedCommit(w, "the change"); err != nil {
 		t.Fatal(err)
 	}
 	if err := rg.seed.Push(&git.PushOptions{RefSpecs: []config.RefSpec{"refs/heads/cr-x:refs/heads/cr-x"}}); err != nil {
