@@ -102,6 +102,9 @@ func rigWith(t *testing.T, cfg *uiconfig.Config, rg *rig) *rig {
 func (rg *rig) commit(t *testing.T, files map[string]string, message string) {
 	t.Helper()
 	for p, content := range files {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(rg.dir, p)), 0o755); err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(filepath.Join(rg.dir, p), []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}

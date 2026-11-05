@@ -144,3 +144,20 @@ pre.code .diff-del { color: var(--bad); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* the values and the environment pages (C3) */
+.values-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1rem; align-items: start; }
+@media (max-width: 900px) { .values-layout { grid-template-columns: 1fr; } }
+.values-form .field { margin-bottom: 0.9rem; }
+.values-form label { display: block; margin-bottom: 0.25rem; }
+.values-side .card { margin-bottom: 1rem; }
+.save-bar { display: flex; gap: 0.5rem; align-items: center; margin: 1rem 0; }
+.save-bar input { flex: 1; }
+.secret-ref input { width: 10rem; margin-right: 0.4rem; }
+textarea.yaml { width: 100%; font: 12px/1.5 ui-monospace, monospace; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+.req { color: var(--bad); margin-left: 2px; }
+button.link { background: none; border: none; color: var(--link, #4f8ef7); cursor: pointer; padding: 0 0.3rem; text-decoration: underline; }
+.card.warn { border-color: var(--warn); }
+.ok { color: var(--ok); }
+.err { color: var(--bad); }
+pre.explain { white-space: pre-wrap; font: 12px/1.5 ui-monospace, monospace; }

@@ -219,6 +219,19 @@ func (r *Repo) LogPath(ctx context.Context, branch, path string, n int) ([][2]st
 	return commits, err
 }
 
+// Checkout is the tree of the remote branch's head written in dest — a copy for reading (the values work
+// renders a pack out of it), with no .git of its own. The caller removes it.
+func (r *Repo) Checkout(ctx context.Context, branch, dest string) (string, error) {
+	sha, err := r.transport.Resolve(ctx, "refs/remotes/origin/"+branch)
+	if err != nil {
+		return "", fmt.Errorf("the branch %s: %w", branch, err)
+	}
+	if err := r.transport.Checkout(ctx, sha, dest); err != nil {
+		return "", err
+	}
+	return sha, nil
+}
+
 // Write commits files (path → content) on branch as author (the user — "Name <address>"), the committer
 // pack-ui (К5), and pushes. baseSHA is the head the user saw when they started editing ("" — not known):
 // when the branch moved since, a file of the user's among the moved ones is a *Conflict with the other

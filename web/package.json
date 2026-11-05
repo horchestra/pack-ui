@@ -9,10 +9,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@rjsf/core": "^6.11.0",
+    "@rjsf/utils": "^6.11.0",
+    "@rjsf/validator-ajv8": "^6.11.0",
     "mermaid": "^11.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.0"
+    "react-router-dom": "^6.30.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",

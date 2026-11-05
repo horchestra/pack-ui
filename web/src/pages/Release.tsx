@@ -115,7 +115,10 @@ export function Release() {
                 {t(doc)}
               </Link>
             ))}
-            <Link to={`/r/${rel}/values`}>{t('values')}</Link>
+            <Link to={`/r/${rel}/values`} style={{ marginRight: '0.8rem' }}>
+              {t('values')}
+            </Link>
+            <Link to={`/r/${rel}/env`}>{t('environment')}</Link>
           </nav>
         </>
       )}
