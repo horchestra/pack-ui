@@ -55,7 +55,12 @@ function ProjectReleases({ project }: { project: Project }) {
   const state = useData<ReleaseInfo[]>(`/projects/${project.id}/releases`)
   return (
     <section className="card" aria-label={project.id}>
-      <h2>{project.id}</h2>
+      <h2>
+        {project.id}{' '}
+        <small>
+          <Link to={`/p/${project.id}/changes`}>{t('changes')}</Link>
+        </small>
+      </h2>
       {state.loading ? (
         <p className="muted">{t('loading')}</p>
       ) : state.error ? (

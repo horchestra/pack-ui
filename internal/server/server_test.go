@@ -228,6 +228,64 @@ func TestEditConflict(t *testing.T) {
 	}
 }
 
+// The diff of a change request's branch against main: a file changed, a file new, a file gone.
+func TestDiff(t *testing.T) {
+	rg := newRig(t, "direct")
+	rg.commit(t, map[string]string{"gone.txt": "away\n"}, "a file to go")
+	// the branch off main's head
+	w := rg.seedW
+	if err := w.Checkout(&git.CheckoutOptions{Branch: "refs/heads/cr-x", Create: true}); err != nil {
+		t.Fatal(err)
+	}
+	for p, content := range map[string]string{"values.yaml": "a: 2\n", "new.txt": "fresh\n"} {
+		if err := os.WriteFile(filepath.Join(rg.dir, p), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.Add(p); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Remove(filepath.Join(rg.dir, "gone.txt")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Remove("gone.txt"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Commit("the change", &git.CommitOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rg.seed.Push(&git.PushOptions{RefSpecs: []config.RefSpec{"refs/heads/cr-x:refs/heads/cr-x"}}); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.Get(rg.srv.URL + "/api/repo/dev/diff?head=cr-x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var files []struct {
+		Path string `json:"path"`
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&files); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string][2]string{}
+	for _, f := range files {
+		got[f.Path] = [2]string{f.From, f.To}
+	}
+	want := map[string][2]string{
+		"values.yaml": {"a: 1\n", "a: 2\n"},
+		"new.txt":     {"", "fresh\n"},
+		"gone.txt":    {"away\n", ""},
+	}
+	for p, wv := range want {
+		if got[p] != wv {
+			t.Errorf("%s: got %q, want %q (all: %v)", p, got[p], wv, got)
+		}
+	}
+}
+
 func TestReviewFlowBranch(t *testing.T) {
 	rg := newRig(t, "review")
 	// flow: review — a write without the change request's branch is refused

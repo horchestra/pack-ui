@@ -9,6 +9,8 @@ import { Jobs } from './pages/Jobs'
 import { Docs } from './pages/Docs'
 import { Values } from './pages/Values'
 import { Env } from './pages/Env'
+import { Changes } from './pages/Changes'
+import { ChangePage } from './pages/ChangePage'
 
 // The shell: the header with the language and the theme, the routes. HashRouter — the SPA is served from a
 // directory, a hash keeps the backend's fallback to index.html out of the way.
@@ -41,6 +43,8 @@ export function App() {
           <Route path="/r/:rel/doc/:doc" element={<Docs />} />
           <Route path="/r/:rel/values" element={<Values />} />
           <Route path="/r/:rel/env" element={<Env />} />
+          <Route path="/p/:project/changes" element={<Changes />} />
+          <Route path="/changes/:id" element={<ChangePage />} />
           <Route path="/requests/:id" element={<RequestPage />} />
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobPage />} />

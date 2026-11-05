@@ -232,6 +232,85 @@ func (r *Repo) Checkout(ctx context.Context, branch, dest string) (string, error
 	return sha, nil
 }
 
+// FileDiff is one file's change of a branch against the base it forked at: the contents before and after
+// ("" — the file is new, or is gone).
+type FileDiff struct {
+	Path string `json:"path"`
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+// Diff is the change of headBranch against where it left baseBranch (the merge-base) — what a change
+// request's page shows. A file over a megabyte either side is said, not carried.
+func (r *Repo) Diff(ctx context.Context, baseBranch, headBranch string) ([]FileDiff, error) {
+	resolve := func(branch string) (*object.Commit, error) {
+		sha, err := r.transport.Resolve(ctx, "refs/remotes/origin/"+branch)
+		if err != nil {
+			return nil, fmt.Errorf("the branch %s: %w", branch, err)
+		}
+		return r.r.CommitObject(plumbing.NewHash(sha))
+	}
+	base, err := resolve(baseBranch)
+	if err != nil {
+		return nil, err
+	}
+	head, err := resolve(headBranch)
+	if err != nil {
+		return nil, err
+	}
+	if bases, err := base.MergeBase(head); err == nil && len(bases) > 0 {
+		base = bases[0]
+	}
+	fromTree, err := base.Tree()
+	if err != nil {
+		return nil, err
+	}
+	toTree, err := head.Tree()
+	if err != nil {
+		return nil, err
+	}
+	changes, err := fromTree.Diff(toTree)
+	if err != nil {
+		return nil, err
+	}
+	blob := func(e *object.ChangeEntry) (string, error) {
+		if e.TreeEntry.Hash.IsZero() {
+			return "", nil
+		}
+		b, err := object.GetBlob(r.r.Storer, e.TreeEntry.Hash)
+		if err != nil {
+			return "", err
+		}
+		if b.Size > 1<<20 {
+			return fmt.Sprintf("(a file of %d bytes, not shown)", b.Size), nil
+		}
+		rd, err := b.Reader()
+		if err != nil {
+			return "", err
+		}
+		defer rd.Close()
+		raw, err := io.ReadAll(rd)
+		return string(raw), err
+	}
+	out := []FileDiff{}
+	for _, ch := range changes {
+		path := ch.To.Name
+		if len(path) == 0 {
+			path = ch.From.Name
+		}
+		from, err := blob(&ch.From)
+		if err != nil {
+			return nil, err
+		}
+		to, err := blob(&ch.To)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, FileDiff{Path: path, From: from, To: to})
+	}
+	return out, nil
+}
+
 // Write commits files (path → content) on branch as author (the user — "Name <address>"), the committer
 // pack-ui (К5), and pushes. baseSHA is the head the user saw when they started editing ("" — not known):
 // when the branch moved since, a file of the user's among the moved ones is a *Conflict with the other

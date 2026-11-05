@@ -36,6 +36,7 @@ func New(cfg *config.Config, op *operator.Client, repos *edit.Repos) *Server {
 	s.mux.HandleFunc("GET /api/repo/{id}/file", s.readFile)
 	s.mux.HandleFunc("PUT /api/repo/{id}/file", s.writeFile)
 	s.mux.HandleFunc("GET /api/repo/{id}/log", s.log)
+	s.mux.HandleFunc("GET /api/repo/{id}/diff", s.diff)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/check", s.valuesCheck)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/preview", s.valuesPreview)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/write", s.valuesWrite)
@@ -159,6 +160,34 @@ func (s *Server) log(w http.ResponseWriter, r *http.Request) {
 		out = append(out, commit{SHA: c[0], Subject: c[1]})
 	}
 	answer(w, out)
+}
+
+// diff answers GET /api/repo/{id}/diff?base=&head= — the change of the head branch against where it left
+// the base one (a change request's page).
+func (s *Server) diff(w http.ResponseWriter, r *http.Request) {
+	p := s.project(w, r)
+	if p == nil {
+		return
+	}
+	repo := s.repo(w, r, p)
+	if repo == nil {
+		return
+	}
+	head := r.URL.Query().Get("head")
+	if len(head) == 0 {
+		fail(w, http.StatusBadRequest, "bad_request", "head is required")
+		return
+	}
+	base := r.URL.Query().Get("base")
+	if len(base) == 0 {
+		base = p.Branch
+	}
+	files, err := repo.Diff(r.Context(), base, head)
+	if err != nil {
+		fail(w, http.StatusInternalServerError, "error", "%v", err)
+		return
+	}
+	answer(w, files)
 }
 
 // writeFile is the body of PUT /api/repo/{id}/file.
