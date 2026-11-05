@@ -18,15 +18,18 @@ import (
 	"github.com/horchestra/pack-ui/internal/operator"
 )
 
-// rig is pack-ui over a bare file-transport remote and a fake operator that records /api/sync.
+// rig is pack-ui over a bare file-transport remote and a fake operator that records /api/sync and the
+// requests it is asked.
 type rig struct {
-	srv    *httptest.Server
-	remote string
-	seed   *git.Repository
-	seedW  *git.Worktree
-	dir    string
-	syncs  []map[string]string
-	users  []string
+	srv      *httptest.Server
+	cfg      *uiconfig.Config
+	remote   string
+	seed     *git.Repository
+	seedW    *git.Worktree
+	dir      string
+	syncs    []map[string]string
+	users    []string
+	requests []map[string]string
 }
 
 func newRig(t *testing.T, flow string) *rig {
@@ -67,6 +70,25 @@ func newRig(t *testing.T, flow string) *rig {
 			w.WriteHeader(http.StatusAccepted)
 			return
 		}
+		// POST /api/releases/{rel}/requests — a request asked of a release
+		if strings.HasPrefix(r.URL.Path, "/api/releases/") && strings.HasSuffix(r.URL.Path, "/requests") {
+			rel := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/api/releases/"), "/requests")
+			var body map[string]string
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body == nil {
+				body = map[string]string{}
+			}
+			body["release"] = rel
+			rg.requests = append(rg.requests, body)
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "req-1", "release": rel, "action": body["action"], "state": "waiting"})
+			return
+		}
+		// GET /api/releases/{rel} — the release the sync registered
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/releases/") {
+			_ = json.NewEncoder(w).Encode(map[string]string{"path": "releases/prod/db"})
+			return
+		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	t.Cleanup(op.Close)
@@ -93,6 +115,7 @@ func rigWith(t *testing.T, cfg *uiconfig.Config, rg *rig) *rig {
 	}
 	repos := edit.New(cfg.Repos, nil, cfg.Git.Committer)
 	t.Cleanup(repos.Close)
+	rg.cfg = cfg
 	rg.srv = httptest.NewServer(New(cfg, &operator.Client{Base: cfg.Operator, User: cfg.User}, repos).Handler())
 	t.Cleanup(rg.srv.Close)
 	return rg
@@ -174,7 +197,7 @@ func TestEditPushSync(t *testing.T) {
 		t.Errorf("the write: %+v, the remote at %s", wrote, rg.head(t))
 	}
 	// the operator was asked to sync, as the user
-	if len(rg.syncs) != 1 || rg.syncs[0]["ref"] != "main" || rg.syncs[0]["repo"] != rg.remote {
+	if len(rg.syncs) != 1 || rg.syncs[0]["ref"] != "main" || rg.syncs[0]["repo"] != "dev" {
 		t.Errorf("the syncs: %v", rg.syncs)
 	}
 	if len(rg.users) != 1 || rg.users[0] != "alice" {

@@ -4,6 +4,7 @@
 package e2e
 
 import (
+	"io"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -159,6 +160,7 @@ func TestE2E(t *testing.T) {
 		Operator: opURL, Auth: "none", User: "dev", // auth: none — dev is an admin in every domain
 		Static: filepath.Join("..", "web", "dist"),
 		Repos:  filepath.Join(t.TempDir(), "repos"),
+		Pack:   bin,
 		Git:    uiconfig.Git{Committer: "pack-ui <pack-ui@localhost>"},
 		Projects: []uiconfig.Project{{
 			ID: "dev", Repo: "file://" + bare, Branch: "main", Flow: "direct",
@@ -183,6 +185,71 @@ func TestE2E(t *testing.T) {
 	if err := spec.Run(); err != nil {
 		t.Fatalf("the browser: %v", err)
 	}
+
+	// C5: a release is made through pack-ui — init's files committed; the values the pack asks written; the
+	// operator's refresh done, the release listed, unfilled
+	post(t, "http://"+uiLn.Addr().String()+"/api/repo/dev/init",
+		`{"pack":"packs/kv","path":"releases/prod/cache","target":"memory","message":"the cache release"}`)
+	req, _ := http.NewRequest("PUT", "http://"+uiLn.Addr().String()+"/api/repo/dev/file",
+		strings.NewReader(`{"path":"releases/prod/cache/values.yaml","content":"value: two\n","message":"the values"}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp2, err := http.DefaultClient.Do(req)
+	if err != nil || resp2.StatusCode != http.StatusOK {
+		t.Fatalf("the values write: %v %v", err, resp2)
+	}
+	resp2.Body.Close()
+	post(t, opURL+"/api/releases/dev:releases%2Fprod%2Fcache/requests", `{"action":"refresh"}`)
+	deadline := time.Now().Add(120 * time.Second)
+	seen := map[string]bool{}
+	for {
+		if time.Now().After(deadline) {
+			t.Fatalf("the new release did not land (seen: %v)", seen)
+		}
+		// a webhook would: the operator fetches what the refresh committed and says the states again
+		if resp, err := http.Post(opURL+"/api/sync", "application/json", strings.NewReader(`{"repo":"dev","ref":"main"}`)); err == nil {
+			resp.Body.Close()
+		}
+		resp, err := http.Get(opURL + "/api/projects/dev/releases")
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var rels []struct {
+				Path  string `json:"path"`
+				State string `json:"state"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&rels)
+			resp.Body.Close()
+			for _, r := range rels {
+				if r.Path == "releases/prod/cache" {
+					seen[r.State] = true
+					if r.State == "unfilled" || r.State == "planned" || r.State == "applied" {
+						fmt.Println("the release is made:", r.Path, r.State)
+						return
+					}
+				}
+			}
+		} else if err == nil {
+			resp.Body.Close()
+		}
+		// the jobs the release's requests made: a refresh that succeeded is the release brought
+		if resp, err := http.Get(opURL + "/api/jobs"); err == nil && resp.StatusCode == http.StatusOK {
+			var jobs []struct {
+				State string   `json:"state"`
+				Argv  []string `json:"argv"`
+			}
+			_ = json.NewDecoder(resp.Body).Decode(&jobs)
+			resp.Body.Close()
+			for _, j := range jobs {
+				argv := strings.Join(j.Argv, " ")
+				if j.State == "succeeded" && strings.Contains(argv, "releases/prod/cache") && strings.Contains(argv, "refresh") {
+					seen["refreshed"] = true
+					fmt.Println("the release is made: refreshed")
+					return
+				}
+			}
+		} else if err == nil {
+			resp.Body.Close()
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 func post(t *testing.T, url, body string) {
@@ -191,9 +258,10 @@ func post(t *testing.T, url, body string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	body2, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		t.Fatalf("POST %s: %s", url, resp.Status)
+		t.Fatalf("POST %s: %s — %s", url, resp.Status, body2)
 	}
 }
 

@@ -59,6 +59,8 @@ function ProjectReleases({ project }: { project: Project }) {
         {project.id}{' '}
         <small>
           <Link to={`/p/${project.id}/changes`}>{t('changes')}</Link>
+          {' · '}
+          <Link to={`/p/${project.id}/new-release`}>{t('newRelease')}</Link>
         </small>
       </h2>
       {state.loading ? (

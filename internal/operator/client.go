@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -179,10 +180,16 @@ func (c *Client) Releases(ctx context.Context, project string) ([]Release, error
 	return out, c.Get(ctx, "/api/projects/"+project+"/releases", &out)
 }
 
+// relEsc is a release id ("<project>:<path>") as one URL segment — the slashes of the path %2F, as the
+// operator's routes want them (К4).
+func relEsc(release string) string {
+	return url.PathEscape(release)
+}
+
 // Raw is a synchronous pack document (К4): /api/releases/{rel}/{status|history|logs|actions|check|template|
 // graph|schema|explain}, the query as the caller built it ("sha=…&lang=…").
 func (c *Client) Raw(ctx context.Context, release, op, query string) (json.RawMessage, error) {
-	path := "/api/releases/" + release + "/" + op
+	path := "/api/releases/" + relEsc(release) + "/" + op
 	if len(query) > 0 {
 		path += "?" + query
 	}
@@ -193,7 +200,7 @@ func (c *Client) Raw(ctx context.Context, release, op, query string) (json.RawMe
 // Request opens a deploy request (К3): {action, sha, params}, idempotent.
 func (c *Client) Request(ctx context.Context, release, action, sha string, params map[string]string) (*Request, error) {
 	var out Request
-	err := c.Post(ctx, "/api/releases/"+release+"/requests",
+	err := c.Post(ctx, "/api/releases/"+relEsc(release)+"/requests",
 		map[string]any{"action": action, "sha": sha, "params": params}, &out)
 	return &out, err
 }

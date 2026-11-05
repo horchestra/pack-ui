@@ -18,8 +18,9 @@ type Config struct {
 	Operator string   `json:"operator"` // the operator API's base URL
 	Auth     string   `json:"auth"`     // none — until C9; anything else is refused for now
 	User     string   `json:"user"`     // auth: none — who the requests are for (X-Pack-User)
-	Static   string   `json:"static"`   // the SPA's directory; empty — the API only
+	Static   string   `json:"static"`   // the SPA's directory; empty — the one embedded into the binary (web/dist)
 	Repos    string   `json:"repos"`    // the working copies' directory
+	Pack     string   `json:"pack"`     // the pack binary a release's init runs (C5)
 	Secrets  Secrets  `json:"secrets"`
 	Git      Git      `json:"git"`
 	Projects []Project `json:"projects"`
@@ -75,6 +76,9 @@ func Load(path string) (*Config, error) {
 	}
 	if len(c.Repos) == 0 {
 		return nil, fmt.Errorf("%s: repos is required — where the working copies live", path)
+	}
+	if len(c.Pack) == 0 {
+		c.Pack = "pack"
 	}
 	if len(c.Git.Committer) == 0 {
 		c.Git.Committer = "pack-ui <pack-ui@localhost>"

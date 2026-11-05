@@ -9,34 +9,44 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 
 	"github.com/horchestra/pack-ui/internal/config"
 	"github.com/horchestra/pack-ui/internal/edit"
 	"github.com/horchestra/pack-ui/internal/operator"
+	"github.com/horchestra/pack-ui/web"
 )
 
 // Server is pack-ui's backend.
 type Server struct {
-	cfg   *config.Config
-	op    *operator.Client
-	repos *edit.Repos
-	mux   *http.ServeMux
+	cfg    *config.Config
+	op     *operator.Client
+	repos  *edit.Repos
+	static fs.FS
+	mux    *http.ServeMux
 }
 
-// New is the server on the configuration: op the operator's client, repos the working copies.
+// New is the server on the configuration: op the operator's client, repos the working copies. The SPA is
+// the directory static names, the built one embedded into the binary without it — pack-ui is one binary.
 func New(cfg *config.Config, op *operator.Client, repos *edit.Repos) *Server {
 	s := &Server{cfg: cfg, op: op, repos: repos, mux: http.NewServeMux()}
+	if len(cfg.Static) > 0 {
+		s.static = os.DirFS(cfg.Static)
+	} else if dist, err := fs.Sub(web.Dist, "dist"); err == nil {
+		s.static = dist
+	}
 	s.mux.HandleFunc("GET /api/whoami", s.whoami)
 	s.mux.HandleFunc("GET /api/projects", s.projects)
 	s.mux.HandleFunc("GET /api/repo/{id}/file", s.readFile)
 	s.mux.HandleFunc("PUT /api/repo/{id}/file", s.writeFile)
 	s.mux.HandleFunc("GET /api/repo/{id}/log", s.log)
 	s.mux.HandleFunc("GET /api/repo/{id}/diff", s.diff)
+	s.mux.HandleFunc("POST /api/repo/{id}/init", s.initRelease)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/check", s.valuesCheck)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/preview", s.valuesPreview)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/write", s.valuesWrite)
@@ -245,7 +255,7 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "error", "%v", err)
 		return
 	}
-	if err := s.op.Sync(r.Context(), p.Repo, branch); err != nil {
+	if err := s.op.Sync(r.Context(), p.ID, branch); err != nil {
 		log.Error().Err(err).Str("project", p.ID).Msg("the operator's sync after a push")
 		// the commit landed; the sync is retried by the operator's interval — say so, do not fail the write
 		answer(w, map[string]any{"sha": sha, "branch": branch, "synced": false})
@@ -254,17 +264,23 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 	answer(w, map[string]any{"sha": sha, "branch": branch, "synced": true})
 }
 
-// spa serves the SPA's directory; a path that is no file falls to index.html — the SPA routes. With no
-// static directory configured, the API is all there is.
+// spa serves the SPA; a path that is no file falls to index.html — the SPA routes. With no SPA at all
+// (the embedded dist is the placeholder only, no static configured), the API is all there is.
 func (s *Server) spa(w http.ResponseWriter, r *http.Request) {
-	if len(s.cfg.Static) == 0 {
-		fail(w, http.StatusNotFound, "not_found", "the SPA is not built into this run (static: is empty)")
+	if s.static == nil {
+		fail(w, http.StatusNotFound, "not_found", "no SPA in this run")
 		return
 	}
-	path := filepath.Join(s.cfg.Static, filepath.Clean("/"+r.URL.Path))
-	if st, err := os.Stat(path); err == nil && !st.IsDir() {
-		http.ServeFile(w, r, path)
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if len(path) > 0 {
+		if st, err := fs.Stat(s.static, path); err == nil && !st.IsDir() {
+			http.ServeFileFS(w, r, s.static, path)
+			return
+		}
+	}
+	if _, err := fs.Stat(s.static, "index.html"); err != nil {
+		fail(w, http.StatusNotFound, "not_found", "the SPA is not built into this binary (npm run build in web/)")
 		return
 	}
-	http.ServeFile(w, r, filepath.Join(s.cfg.Static, "index.html"))
+	http.ServeFileFS(w, r, s.static, "index.html")
 }

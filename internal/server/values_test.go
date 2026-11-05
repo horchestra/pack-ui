@@ -65,31 +65,37 @@ func post(t *testing.T, rg *rig, path string, doc any) (int, map[string]any) {
 // remoteFile is the file at the remote's main head.
 func (rg *rig) remoteFile(t *testing.T, path string) string {
 	t.Helper()
-	r, err := git.PlainOpen(rg.remote)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref, err := r.Reference(plumbing.NewBranchReferenceName("main"), true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c, err := r.CommitObject(ref.Hash())
-	if err != nil {
-		t.Fatal(err)
-	}
-	tree, err := c.Tree()
-	if err != nil {
-		t.Fatal(err)
-	}
-	f, err := tree.File(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	content, err := f.Contents()
+	content, err := rg.remoteFileE(t, path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return content
+}
+
+// remoteFileE is remoteFile's error, for a caller that expects a file missing.
+func (rg *rig) remoteFileE(t *testing.T, path string) (string, error) {
+	t.Helper()
+	r, err := git.PlainOpen(rg.remote)
+	if err != nil {
+		return "", err
+	}
+	ref, err := r.Reference(plumbing.NewBranchReferenceName("main"), true)
+	if err != nil {
+		return "", err
+	}
+	c, err := r.CommitObject(ref.Hash())
+	if err != nil {
+		return "", err
+	}
+	tree, err := c.Tree()
+	if err != nil {
+		return "", err
+	}
+	f, err := tree.File(path)
+	if err != nil {
+		return "", err
+	}
+	return f.Contents()
 }
 
 var givenValues = map[string]any{

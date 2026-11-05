@@ -89,6 +89,11 @@ const dict = {
     addSetting: 'Add a setting',
     targets: 'Targets',
     addTarget: 'Add a target',
+    newRelease: 'New release',
+    pack: 'Pack',
+    targetSource: 'Target source',
+    targetImage: 'Target image',
+    runtime: 'Runtime',
   },
   ru: {
     projects: 'Проекты',
@@ -175,6 +180,11 @@ const dict = {
     addSetting: 'Добавить настройку',
     targets: 'Площадки',
     addTarget: 'Добавить площадку',
+    newRelease: 'Новый релиз',
+    pack: 'Пак',
+    targetSource: 'Источник площадки',
+    targetImage: 'Образ площадки',
+    runtime: 'Исполнение',
   },
 } as const
 
