@@ -15,14 +15,20 @@ import (
 	"github.com/rs/zerolog/log"
 
 	opgit "github.com/horchestra/pack-operator/git"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/horchestra/pack-ui/internal/config"
 	"github.com/horchestra/pack-ui/internal/edit"
+	"github.com/horchestra/pack-ui/internal/mcpserver"
 	"github.com/horchestra/pack-ui/internal/operator"
 	"github.com/horchestra/pack-ui/internal/server"
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		mcpMain(os.Args[2:])
+		return
+	}
 	path := flag.String("config", "pack-ui.yaml", "the configuration file")
 	flag.Parse()
 	zerolog.TimeFieldFormat = time.RFC3339Nano
@@ -53,4 +59,25 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal().Err(err).Msg("the server")
 	}
+}
+
+// mcpMain is `pack-ui mcp`: the MCP server a model works the values and the packs with, on stdin and
+// stdout, against a running pack-ui (-—base, its user --user). What is a person's stays a person's: no
+// tool approves a deploy or merges a change.
+func mcpMain(args []string) {
+	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
+	base := fs.String("base", envOr("PACK_UI_URL", "http://127.0.0.1:8090"), "pack-ui's URL (PACK_UI_URL)")
+	user := fs.String("user", envOr("PACK_UI_USER", ""), "the X-Pack-User header, empty — none (PACK_UI_USER)")
+	_ = fs.Parse(args)
+	srv := mcpserver.New(&mcpserver.Client{Base: *base, User: *user}, "0.1.0")
+	if err := srv.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+		log.Fatal().Err(err).Msg("the MCP server")
+	}
+}
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); len(v) > 0 {
+		return v
+	}
+	return fallback
 }

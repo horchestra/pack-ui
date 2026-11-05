@@ -89,6 +89,13 @@ func (r *Release) bundle() (*bundle.Bundle, error) {
 	return bundle.Load(pack)
 }
 
+// Bundle is the pack of the release — the diagnosis reads the pack's own diagnoses of the key and works
+// the fixes' exprs on it.
+func (r *Release) Bundle() (*bundle.Bundle, error) { return r.bundle() }
+
+// Installation is the release's installation id (release.yaml's id).
+func (r *Release) Installation() string { return r.id }
+
 // StubTarget is the render's target where pack-ui works: pack-ui holds no targets (the worker's pack
 // does), so a key resolves to its own name. A suggestion that reads a target's facts offers nothing here —
 // the help is the schema's, not the environment's.

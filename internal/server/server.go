@@ -57,6 +57,7 @@ func New(cfg *config.Config, op *operator.Client, repos *edit.Repos) *Server {
 	s.mux.HandleFunc("POST /api/repo/{id}/values/check", s.valuesCheck)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/preview", s.valuesPreview)
 	s.mux.HandleFunc("POST /api/repo/{id}/values/write", s.valuesWrite)
+	s.mux.HandleFunc("POST /api/repo/{id}/diagnose", s.diagnose)
 	s.mux.Handle("/api/op/", s.proxy())
 	s.mux.HandleFunc("/", s.spa)
 	return s

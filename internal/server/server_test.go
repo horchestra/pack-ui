@@ -30,6 +30,7 @@ type rig struct {
 	syncs    []map[string]string
 	users    []string
 	requests []map[string]string
+	opExtra  http.HandlerFunc // set after newRig: answers before the fake's own routes
 }
 
 func newRig(t *testing.T, flow string) *rig {
@@ -62,6 +63,10 @@ func newRig(t *testing.T, flow string) *rig {
 	rg.remote, rg.seed, rg.seedW, rg.dir = remote, seed, w, dir
 	rg.commit(t, map[string]string{"values.yaml": "a: 1\n"}, "the beginning")
 	op := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if rg.opExtra != nil {
+			rg.opExtra(w, r)
+			return
+		}
 		if r.URL.Path == "/api/sync" {
 			var body map[string]string
 			_ = json.NewDecoder(r.Body).Decode(&body)

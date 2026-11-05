@@ -3,6 +3,7 @@ import { opPost, relURL, type PackRequest, type ReleaseDetail } from '../api'
 import { Badge } from '../components/Badge'
 import { Load, useData } from '../components/data'
 import { useT } from '../i18n'
+import { Diagnose } from './Diagnose'
 
 // The release card: the current and the installed SHA, what next says to do (as buttons that open a
 // request), what waits for an approval, the commits of the release's directory, and the documents —
@@ -108,6 +109,8 @@ export function Release() {
               </table>
             )}
           </div>
+
+          <Diagnose project={project} path={path} sha={d.sha} />
 
           <nav className="card" aria-label="documents">
             {(['status', 'history', 'sagas', 'logs', 'actions', 'facts', 'template', 'graph'] as const).map((doc) => (
