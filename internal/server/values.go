@@ -144,7 +144,7 @@ func (s *Server) valuesWrite(w http.ResponseWriter, r *http.Request) {
 	if repo == nil {
 		return
 	}
-	author := s.cfg.User + " <" + s.cfg.User + "@localhost>"
+	author := s.user(r) + " <" + s.user(r) + "@localhost>"
 	path := body.Path + "/values.yaml"
 	sha, err := repo.Write(r.Context(), branch, body.SHA, map[string][]byte{path: content}, author, body.Message)
 	if err != nil {
@@ -164,7 +164,7 @@ func (s *Server) valuesWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	synced := true
-	if err := s.op.Sync(r.Context(), p.Repo, branch); err != nil {
+	if err := s.opFor(r).Sync(r.Context(), p.Repo, branch); err != nil {
 		synced = false
 	}
 	answer(w, map[string]any{"sha": sha, "branch": branch, "path": path, "synced": synced})

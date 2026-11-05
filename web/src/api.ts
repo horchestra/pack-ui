@@ -11,12 +11,25 @@ export class ApiError extends Error {
   }
 }
 
+// The session's CSRF token (C9): whoami and the login say it; a mutation with the session's cookie goes
+// nowhere without it.
+let csrf = ''
+export const setCSRF = (token: string) => {
+  csrf = token
+}
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (csrf && method !== 'GET') headers['X-CSRF-Token'] = csrf
   const resp = await fetch(path, {
     method,
-    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
+  if (resp.status === 401 && !window.location.hash.startsWith('#/login')) {
+    window.location.hash = '#/login'
+  }
   if (resp.status >= 400) {
     let code = 'error'
     let message = resp.statusText

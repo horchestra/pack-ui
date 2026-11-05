@@ -151,7 +151,7 @@ func (s *Server) initRelease(w http.ResponseWriter, r *http.Request) {
 	if len(message) == 0 {
 		message = fmt.Sprintf("init %s", body.Path)
 	}
-	author := s.cfg.User + " <" + s.cfg.User + "@localhost>"
+	author := s.user(r) + " <" + s.user(r) + "@localhost>"
 	landed, err := repo.Write(r.Context(), branch, sha, files, author, message)
 	if err != nil {
 		var conflict *edit.Conflict
@@ -164,7 +164,7 @@ func (s *Server) initRelease(w http.ResponseWriter, r *http.Request) {
 	}
 	// the operator syncs the push — it knows the release — then refreshes: the pack locked and brought,
 	// the lock its commit
-	if err := s.op.Sync(r.Context(), p.ID, branch); err != nil {
+	if err := s.opFor(r).Sync(r.Context(), p.ID, branch); err != nil {
 		fail(w, http.StatusBadGateway, "error", "committed as %s, but the sync was not asked: %v", landed[:12], err)
 		return
 	}
@@ -173,7 +173,7 @@ func (s *Server) initRelease(w http.ResponseWriter, r *http.Request) {
 	deadline := time.Now().Add(30 * time.Second)
 	var out map[string]any
 	for {
-		if err := s.op.Get(r.Context(), "/api/releases/"+url.PathEscape(rel), &out); err == nil {
+		if err := s.opFor(r).Get(r.Context(), "/api/releases/"+url.PathEscape(rel), &out); err == nil {
 			break
 		}
 		if time.Now().After(deadline) {
@@ -186,7 +186,7 @@ func (s *Server) initRelease(w http.ResponseWriter, r *http.Request) {
 		case <-time.After(500 * time.Millisecond):
 		}
 	}
-	req, err := s.op.Request(r.Context(), rel, "refresh", landed, nil)
+	req, err := s.opFor(r).Request(r.Context(), rel, "refresh", landed, nil)
 	if err != nil {
 		fail(w, http.StatusBadGateway, "error", "committed as %s, but the refresh was not asked: %v", landed[:12], err)
 		return

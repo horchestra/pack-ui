@@ -6,6 +6,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,9 +14,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
+	opauthn "github.com/horchestra/pack-operator/authn"
+
+	"github.com/horchestra/pack-ui/internal/authn"
 	"github.com/horchestra/pack-ui/internal/config"
 	"github.com/horchestra/pack-ui/internal/edit"
 	"github.com/horchestra/pack-ui/internal/operator"
@@ -24,23 +29,38 @@ import (
 
 // Server is pack-ui's backend.
 type Server struct {
-	cfg    *config.Config
-	op     *operator.Client
-	repos  *edit.Repos
-	static fs.FS
-	mux    *http.ServeMux
+	cfg      *config.Config
+	op       *operator.Client
+	repos    *edit.Repos
+	sessions *authn.Sessions
+	oidc     *opauthn.OIDC
+	static   fs.FS
+	mux      *http.ServeMux
 }
 
 // New is the server on the configuration: op the operator's client, repos the working copies. The SPA is
 // the directory static names, the built one embedded into the binary without it — pack-ui is one binary.
 func New(cfg *config.Config, op *operator.Client, repos *edit.Repos) *Server {
-	s := &Server{cfg: cfg, op: op, repos: repos, mux: http.NewServeMux()}
+	s := &Server{cfg: cfg, op: op, repos: repos, sessions: authn.NewSessions(), mux: http.NewServeMux()}
+	if cfg.Auth == "oidc" {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if o, err := authn.NewOIDC(ctx, cfg.OIDC); err != nil {
+			log.Error().Err(err).Msg("oidc: the issuer is not discovered — the login will not work")
+		} else {
+			s.oidc = o
+		}
+	}
 	if len(cfg.Static) > 0 {
 		s.static = os.DirFS(cfg.Static)
 	} else if dist, err := fs.Sub(web.Dist, "dist"); err == nil {
 		s.static = dist
 	}
 	s.mux.HandleFunc("GET /api/whoami", s.whoami)
+	s.mux.HandleFunc("POST /api/login", s.login)
+	s.mux.HandleFunc("POST /api/logout", s.logout)
+	s.mux.HandleFunc("GET /api/auth/oidc/login", s.oidcLogin)
+	s.mux.HandleFunc("GET /api/auth/oidc/callback", s.oidcCallback)
 	s.mux.HandleFunc("GET /api/projects", s.projects)
 	s.mux.HandleFunc("GET /api/repo/{id}/file", s.readFile)
 	s.mux.HandleFunc("PUT /api/repo/{id}/file", s.writeFile)
@@ -63,8 +83,26 @@ func New(cfg *config.Config, op *operator.Client, repos *edit.Repos) *Server {
 	return s
 }
 
-// Handler is the server as an http.Handler.
-func (s *Server) Handler() http.Handler { return s.mux }
+// Handler is the server as an http.Handler, the API behind the session's middleware (C9).
+func (s *Server) Handler() http.Handler { return s.authn(s.mux) }
+
+// userKey is the context's key of the request's user (the session's; auth none — the configured one).
+type userKey struct{}
+
+func withUser(ctx context.Context, user string) context.Context {
+	return context.WithValue(ctx, userKey{}, user)
+}
+
+// user is who the request is for: the commits' author, the X-Pack-User to the operator.
+func (s *Server) user(r *http.Request) string {
+	if u, ok := r.Context().Value(userKey{}).(string); ok {
+		return u
+	}
+	return s.cfg.User
+}
+
+// opFor is the operator's client as the request's user.
+func (s *Server) opFor(r *http.Request) *operator.Client { return s.op.As(s.user(r)) }
 
 // fail is an error as a Failure document, the API's shape (К4): code one of bad_request, not_found,
 // conflict, error.
@@ -81,9 +119,11 @@ func answer(w http.ResponseWriter, doc any) {
 	_ = json.NewEncoder(w).Encode(doc)
 }
 
-// whoami answers the user the requests are for (auth: none — the configured one, X-Pack-User onwards).
+// whoami answers the user the requests are for and the session's CSRF token (auth: none — the configured
+// one, X-Pack-User onwards; not logged in — the empty user, the SPA shows its login).
 func (s *Server) whoami(w http.ResponseWriter, r *http.Request) {
-	answer(w, map[string]string{"user": s.cfg.User, "auth": s.cfg.Auth})
+	_, csrf := s.sessionUser(r)
+	answer(w, map[string]string{"user": s.user(r), "auth": s.cfg.Auth, "csrf": csrf})
 }
 
 // projects answers the projects pack-ui edits (a mirror of the operator's).
@@ -245,7 +285,7 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 	if repo == nil {
 		return
 	}
-	author := s.cfg.User + " <" + s.cfg.User + "@localhost>"
+	author := s.user(r) + " <" + s.user(r) + "@localhost>"
 	sha, err := repo.Write(r.Context(), branch, body.SHA, map[string][]byte{body.Path: []byte(body.Content)}, author, body.Message)
 	if err != nil {
 		var conflict *edit.Conflict
@@ -263,7 +303,7 @@ func (s *Server) writeFile(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusInternalServerError, "error", "%v", err)
 		return
 	}
-	if err := s.op.Sync(r.Context(), p.ID, branch); err != nil {
+	if err := s.opFor(r).Sync(r.Context(), p.ID, branch); err != nil {
 		log.Error().Err(err).Str("project", p.ID).Msg("the operator's sync after a push")
 		// the commit landed; the sync is retried by the operator's interval — say so, do not fail the write
 		answer(w, map[string]any{"sha": sha, "branch": branch, "synced": false})

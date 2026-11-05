@@ -33,9 +33,10 @@ name and key.`
 
 // Client is pack-ui's API as the tools reach it.
 type Client struct {
-	Base string       // pack-ui's URL (http://127.0.0.1:8090)
-	User string       // the X-Pack-User header, empty — none
-	HTTP *http.Client // nil — http.DefaultClient
+	Base  string       // pack-ui's URL (http://127.0.0.1:8090)
+	User  string       // the X-Pack-User header, empty — none
+	Token string       // Authorization: Bearer (C9 — a session is a person's; a model carries a token)
+	HTTP  *http.Client // nil — http.DefaultClient
 }
 
 // call is one API call as a tool's answer: a 2xx is the document, an error the Failure's message.
@@ -57,6 +58,9 @@ func (c *Client) call(ctx context.Context, method, path string, body any) (*mcp.
 	}
 	if len(c.User) > 0 {
 		req.Header.Set("X-Pack-User", c.User)
+	}
+	if len(c.Token) > 0 {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 	hc := c.HTTP
 	if hc == nil {

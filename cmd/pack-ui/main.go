@@ -44,7 +44,7 @@ func main() {
 	}
 	repos := edit.New(cfg.Repos, store, cfg.Git.Committer)
 	defer repos.Close()
-	op := &operator.Client{Base: cfg.Operator, User: cfg.User}
+	op := &operator.Client{Base: cfg.Operator, User: cfg.User, Token: cfg.OperatorToken}
 	srv := &http.Server{Addr: cfg.Listen, Handler: server.New(cfg, op, repos).Handler()}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -68,8 +68,9 @@ func mcpMain(args []string) {
 	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
 	base := fs.String("base", envOr("PACK_UI_URL", "http://127.0.0.1:8090"), "pack-ui's URL (PACK_UI_URL)")
 	user := fs.String("user", envOr("PACK_UI_USER", ""), "the X-Pack-User header, empty — none (PACK_UI_USER)")
+	token := fs.String("token", envOr("PACK_UI_TOKEN", ""), "a CI token of pack-ui (PACK_UI_TOKEN; auth local|oidc wants one)")
 	_ = fs.Parse(args)
-	srv := mcpserver.New(&mcpserver.Client{Base: *base, User: *user}, "0.1.0")
+	srv := mcpserver.New(&mcpserver.Client{Base: *base, User: *user, Token: *token}, "0.1.0")
 	if err := srv.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		log.Fatal().Err(err).Msg("the MCP server")
 	}

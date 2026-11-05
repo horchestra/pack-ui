@@ -51,6 +51,9 @@ func (c *Client) SagaEvents(ctx context.Context, release, saga string) ([]SagaEv
 	if len(c.User) > 0 {
 		req.Header.Set("X-Pack-User", c.User)
 	}
+	if len(c.Token) > 0 {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
 	resp, err := c.client().Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("GET %s: %w", path, err)

@@ -128,13 +128,13 @@ func (s *Server) authorScaffold(w http.ResponseWriter, r *http.Request) {
 	if len(message) == 0 {
 		message = fmt.Sprintf("scaffold %s", body.Dir)
 	}
-	author_ := s.cfg.User + " <" + s.cfg.User + "@localhost>"
+	author_ := s.user(r) + " <" + s.user(r) + "@localhost>"
 	landed, err := repo.Write(r.Context(), branch, sha, files, author_, message)
 	if err != nil {
 		fail(w, http.StatusInternalServerError, "error", "%v", err)
 		return
 	}
-	_ = s.op.Sync(r.Context(), p.ID, branch)
+	_ = s.opFor(r).Sync(r.Context(), p.ID, branch)
 	answer(w, map[string]any{"sha": landed, "branch": branch, "files": len(files)})
 }
 

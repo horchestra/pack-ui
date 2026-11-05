@@ -60,7 +60,7 @@ func (s *Server) diagnose(w http.ResponseWriter, r *http.Request) {
 	}
 	releaseID := p.ID + ":" + body.Path
 	in := diagnosis.Input{Lang: body.Lang}
-	sagas, err := s.op.Sagas(r.Context(), releaseID)
+	sagas, err := s.opFor(r).Sagas(r.Context(), releaseID)
 	if err != nil {
 		fail(w, http.StatusBadGateway, "error", "the operator's sagas: %v", err)
 		return
@@ -74,7 +74,7 @@ func (s *Server) diagnose(w http.ResponseWriter, r *http.Request) {
 		saga = sagas[0].ID
 	}
 	in.Saga = saga
-	events, err := s.op.SagaEvents(r.Context(), releaseID, saga)
+	events, err := s.opFor(r).SagaEvents(r.Context(), releaseID, saga)
 	if err != nil {
 		fail(w, http.StatusBadGateway, "error", "the saga's journal: %v", err)
 		return
@@ -100,7 +100,7 @@ func (s *Server) diagnose(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if body.Logs == nil || *body.Logs {
-		if logs, err := s.op.Logs(r.Context(), releaseID, in.Key, 50); err == nil && logs != nil {
+		if logs, err := s.opFor(r).Logs(r.Context(), releaseID, in.Key, 50); err == nil && logs != nil {
 			for inst, lines := range logs.Logs[in.Key] {
 				for _, line := range lines {
 					in.Lines = append(in.Lines, inst+": "+line)

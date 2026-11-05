@@ -78,7 +78,8 @@ func TestDefaultsAndRefusals(t *testing.T) {
 	for body, want := range map[string]string{
 		"repos: /tmp/x\n":                                     "operator is required",
 		"operator: http://op\n":                               "repos is required",
-		"operator: http://op\nrepos: /x\nauth: oidc\n":        "only \"none\" exists until C9",
+		"operator: http://op\nrepos: /x\nauth: oidc\n":        "oidc.issuer",
+		"operator: http://op\nrepos: /x\nauth: local\n":      "users",
 		"operator: http://op\nrepos: /x\ngit: {committer: x}\n": "is \"Name <address>\"",
 		"operator: http://op\nrepos: /x\nprojects: [{id: a, repo: r}, {id: a, repo: r2}]\n": "twice",
 		"operator: http://op\nrepos: /x\nprojects: [{id: a, repo: r, flow: sideways}]\n":    "direct or review",

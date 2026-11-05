@@ -17,9 +17,17 @@ import (
 
 // Client is one operator API, for one user.
 type Client struct {
-	Base   string // http://operator:9090
-	User   string // X-Pack-User
-	HTTP   *http.Client
+	Base  string // http://operator:9090
+	User  string // X-Pack-User
+	Token string // Authorization: Bearer (C9: pack-ui's service token, an admin's — X-Pack-User acts as the session's)
+	HTTP  *http.Client
+}
+
+// As is the client for a request's user (C9): the service token stays, the X-Pack-User becomes theirs.
+func (c *Client) As(user string) *Client {
+	out := *c
+	out.User = user
+	return &out
 }
 
 // Failure is an error as the API writes it (pkg/api.Failure, mirrored — pack-ui does not import pack).
@@ -65,6 +73,9 @@ func (c *Client) Do(ctx context.Context, method, path string, body, out any) (in
 	}
 	if len(c.User) > 0 {
 		req.Header.Set("X-Pack-User", c.User)
+	}
+	if len(c.Token) > 0 {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 	resp, err := c.client().Do(req)
 	if err != nil {

@@ -14,16 +14,48 @@ import (
 
 // Config is the file pack-ui runs on.
 type Config struct {
-	Listen   string   `json:"listen"`   // :8080
-	Operator string   `json:"operator"` // the operator API's base URL
-	Auth     string   `json:"auth"`     // none — until C9; anything else is refused for now
-	User     string   `json:"user"`     // auth: none — who the requests are for (X-Pack-User)
-	Static   string   `json:"static"`   // the SPA's directory; empty — the one embedded into the binary (web/dist)
-	Repos    string   `json:"repos"`    // the working copies' directory
-	Pack     string   `json:"pack"`     // the pack binary a release's init runs (C5)
-	Secrets  Secrets  `json:"secrets"`
-	Git      Git      `json:"git"`
-	Projects []Project `json:"projects"`
+	Listen        string    `json:"listen"`         // :8080
+	Operator      string    `json:"operator"`       // the operator API's base URL
+	OperatorToken string    `json:"operator_token"` // C9: the bearer pack-ui proves itself to the operator with (auth local|oidc)
+	Auth          string    `json:"auth"`           // none | local | oidc (C9)
+	User          string    `json:"user"`           // auth: none — who the requests are for (X-Pack-User)
+	Users         []User    `json:"users"`          // auth: local
+	Tokens        []Token   `json:"tokens"`         // the CI tokens of pack-ui itself (a bearer, no session, no CSRF)
+	OIDC          OIDC      `json:"oidc"`           // auth: oidc
+	Static        string    `json:"static"`         // the SPA's directory; empty — the one embedded into the binary (web/dist)
+	Repos         string    `json:"repos"`          // the working copies' directory
+	Pack          string    `json:"pack"`           // the pack binary a release's init runs (C5)
+	Secrets       Secrets   `json:"secrets"`
+	Git           Git       `json:"git"`
+	Projects      []Project `json:"projects"`
+}
+
+// User is a local user (auth: local): the name and the bcrypt hash of the password. What the user may is
+// the operator's policy — pack-ui holds no rights of its own.
+type User struct {
+	Name         string `json:"name"`
+	PasswordHash string `json:"password_hash"` // bcrypt
+}
+
+// Token is a CI token of pack-ui itself: the bearer is the secret, the calls are the user's. (The
+// operator's own tokens are its /api/tokens; these are pack-ui's door for a model or a pipeline.)
+type Token struct {
+	Name  string `json:"name"`
+	Token string `json:"token"`
+	User  string `json:"user"`
+}
+
+// OIDC is the OpenID Connect login (auth: oidc), the same flow the operator has. The groups map to the
+// roles of К7: at login they are granted in every project through the operator's /api/grants (pack-ui's
+// service token is an admin's).
+type OIDC struct {
+	Issuer        string            `json:"issuer"`
+	ClientID      string            `json:"client_id"`
+	ClientSecret  string            `json:"client_secret"`
+	RedirectURL   string            `json:"redirect_url"`
+	UsernameClaim string            `json:"username_claim"` // preferred_username by default
+	GroupsClaim   string            `json:"groups_claim"`   // groups by default
+	Groups        map[string]string `json:"groups"`         // the provider's group → the role
 }
 
 // Secrets is where the git credentials are read from — the same store the operator reads (К5): OpenBao.
@@ -68,8 +100,30 @@ func Load(path string) (*Config, error) {
 	if len(c.Auth) == 0 {
 		c.Auth = "none"
 	}
-	if c.Auth != "none" {
-		return nil, fmt.Errorf("%s: auth %q: only \"none\" exists until C9", path, c.Auth)
+	switch c.Auth {
+	case "none":
+	case "local":
+		if len(c.Users) == 0 {
+			return nil, fmt.Errorf("%s: auth local needs users (a name and the bcrypt password_hash)", path)
+		}
+		for i, u := range c.Users {
+			if len(u.Name) == 0 || len(u.PasswordHash) == 0 {
+				return nil, fmt.Errorf("%s: users[%d]: name and password_hash are required", path, i)
+			}
+		}
+	case "oidc":
+		for _, f := range []struct{ name, v string }{
+			{"issuer", c.OIDC.Issuer}, {"client_id", c.OIDC.ClientID}, {"client_secret", c.OIDC.ClientSecret}, {"redirect_url", c.OIDC.RedirectURL},
+		} {
+			if len(f.v) == 0 {
+				return nil, fmt.Errorf("%s: auth oidc needs oidc.%s", path, f.name)
+			}
+		}
+	default:
+		return nil, fmt.Errorf("%s: auth is none, local or oidc, not %q", path, c.Auth)
+	}
+	if c.Auth != "none" && len(c.OperatorToken) == 0 {
+		return nil, fmt.Errorf("%s: auth %s needs operator_token — the bearer pack-ui proves itself to the operator with (its user an admin, X-Pack-User acts as the session's)", path, c.Auth)
 	}
 	if len(c.User) == 0 {
 		c.User = "dev"

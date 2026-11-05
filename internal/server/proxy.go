@@ -28,9 +28,14 @@ func (s *Server) proxy() http.Handler {
 			}
 			r.Out.URL.Path = dec
 			r.Out.URL.RawPath = esc
-			if len(s.cfg.User) > 0 {
-				r.Out.Header.Set("X-Pack-User", s.cfg.User)
+			// the session's user, with pack-ui's service token — the operator acts as them (C9)
+			if user := s.user(r.In); len(user) > 0 {
+				r.Out.Header.Set("X-Pack-User", user)
 			}
+			if len(s.cfg.OperatorToken) > 0 {
+				r.Out.Header.Set("Authorization", "Bearer "+s.cfg.OperatorToken)
+			}
+			r.Out.Header.Del("Cookie") // the session is pack-ui's, the operator never sees it
 			r.Out.Host = target.Host
 		},
 		// SSE: no buffering, no timeout of the whole response
