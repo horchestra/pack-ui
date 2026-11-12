@@ -4,9 +4,9 @@ go 1.27.1
 
 require (
 	github.com/go-git/go-git/v6 v6.0.0-beta.1
-	github.com/horchestra/pack v0.3.0
+	github.com/horchestra/pack v0.5.1
 	github.com/horchestra/pack/operator v0.1.1
-	github.com/horchestra/pack/sdk v1.0.0
+	github.com/horchestra/pack/sdk v1.1.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/rs/zerolog v1.35.1
